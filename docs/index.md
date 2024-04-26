@@ -14,7 +14,7 @@ Licensed under [the CC-BY-4.0 license](https://github.com/jcbhmr/WebIDL-Go/blob/
 
 This document tries to outline some good ideas for translating Web IDL types used in Web IDL specifications like [the Fetch API](https://fetch.spec.whatwg.org/) and [the DOM API](https://dom.spec.whatwg.org/) into native and (at least to some degree) ergonomic Go types. For example, how would you map a `Promise<ArrayBuffer>` for `Response#arrayBuffer()` into Go? What about `Node`?
 
-<table markdown="1"><td>
+<table><td markdown="1">
 
 ```webidl
 interface Response {
@@ -28,7 +28,7 @@ interface mixin Body {
 }
 ```
 
-<td>
+<td markdown="1">
 
 ```go
 type Response struct {
@@ -42,7 +42,7 @@ interface Body {
 }
 ```
 
-<tr><td>
+<tr><td markdown="1">
 
 ```webidl
 interface Node : EventTarget {
@@ -55,7 +55,7 @@ interface Node : EventTarget {
 }
 ```
 
-<td>
+<td markdown="1">
 
 ```go
 const (
@@ -109,7 +109,7 @@ In places where `undefined` should be treated like `void` (like `Promise<undefin
 
 #### Interface types
 
-<table markdown="1"><td>
+<table><td markdown="1">
 
 ```webidl
 [Exposed=(Window,Worker)]
@@ -121,7 +121,7 @@ interface Headers {
 };
 ```
 
-<td>
+<td markdown="1">
 
 ```go
 type Headers struct{}
@@ -148,7 +148,7 @@ But this comes with the minor downside that it just _feels_ a bit off to be usin
 
 #### `interface mixin`
 
-<table markdown="1"><td>
+<table><td markdown="1">
 
 ```webidl
 interface mixin Body {
@@ -158,7 +158,7 @@ interface mixin Body {
 };
 ```
 
-<td>
+<td markdown="1">
 
 ```go
 type Body interface {
@@ -174,7 +174,7 @@ You can use the `var _ SomeInterface = (*MyStruct)(nil)` hack to do a compile-ti
 
 #### Dictionary types
 	
-<table markdown="1"><td>
+<table><td markdown="1">
 
 ```webidl
 dictionary ResponseInit {
@@ -183,7 +183,7 @@ dictionary ResponseInit {
 };
 ```
 
-<td>
+<td markdown="1">
 
 ```go
 type ResponseInit struct {
@@ -261,13 +261,13 @@ func main() {
 
 Similar JavaScript and Java, there is just a type. There's no accompanying list of valid enum values exposed as a programmatic object or static list. The valid values are provided in documentation and you should provide them as string literals. If the provided string isn't a valid enum value you should `panic()` instead of returning an `error`.
 
-<table markdown="1"><td>
+<table><td markdown="1">
 
 ```webidl
 enum RequestPriority { "high", "low", "auto" };
 ```
 
-<td>
+<td markdown="1">
 
 ```go
 // enum RequestPriority { "high", "low", "auto" };
