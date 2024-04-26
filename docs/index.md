@@ -14,7 +14,7 @@ Licensed under [the CC-BY-4.0 license](https://github.com/jcbhmr/WebIDL-Go/blob/
 
 This document tries to outline some good ideas for translating Web IDL types used in Web IDL specifications like [the Fetch API](https://fetch.spec.whatwg.org/) and [the DOM API](https://dom.spec.whatwg.org/) into native and (at least to some degree) ergonomic Go types. For example, how would you map a `Promise<ArrayBuffer>` for `Response#arrayBuffer()` into Go? What about `Node`?
 
-<table><td>
+<table markdown="1"><td>
 
 ```webidl
 interface Response {
@@ -109,7 +109,7 @@ In places where `undefined` should be treated like `void` (like `Promise<undefin
 
 #### Interface types
 
-<table><td>
+<table markdown="1"><td>
 
 ```webidl
 [Exposed=(Window,Worker)]
@@ -148,7 +148,7 @@ But this comes with the minor downside that it just _feels_ a bit off to be usin
 
 #### `interface mixin`
 
-<table><td>
+<table markdown="1"><td>
 
 ```webidl
 interface mixin Body {
@@ -174,7 +174,7 @@ You can use the `var _ SomeInterface = (*MyStruct)(nil)` hack to do a compile-ti
 
 #### Dictionary types
 	
-<table><td>
+<table markdown="1"><td>
 
 ```webidl
 dictionary ResponseInit {
@@ -261,7 +261,7 @@ func main() {
 
 Similar JavaScript and Java, there is just a type. There's no accompanying list of valid enum values exposed as a programmatic object or static list. The valid values are provided in documentation and you should provide them as string literals. If the provided string isn't a valid enum value you should `panic()` instead of returning an `error`.
 
-<table><td>
+<table markdown="1"><td>
 
 ```webidl
 enum RequestPriority { "high", "low", "auto" };
