@@ -1,3 +1,9 @@
+<style>
+  body > .markdown-body > h1:first-element-child {
+    display: none;
+  }
+</style>
+
 # Go language binding for Web IDL
 
 💡 Inspired by [Java language binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/) \
