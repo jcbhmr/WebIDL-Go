@@ -1,6 +1,7 @@
-# Go language binding for Web IDL
+<p align=center>
+  <b>You're probably looking for <a href="https://jcbhmr.me/WebIDL-Go/">jcbhmr.me/WebIDL-Go</a></b>
+</p>
 
-💡 Inspired by [Java language binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/) \
-🛑 **Very unofficial.** Not associated with W3C or WHATWG in any way.
+## Development
 
-**🛑 This is not a standards document.** This is just one guy's ideas of how to map some types. It's sorta like a mini reference book at this point for future me.
+This website is deployed using the default GitHub Pages Jekyll theme from the `docs/` folder.
