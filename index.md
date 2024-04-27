@@ -4,7 +4,7 @@
 🛑 **Very unofficial.** Not associated with W3C or WHATWG in any way.
 
 Copyright 2024 Jacob Hummer \
-Licensed under [the CC-BY-4.0 license](https://github.com/jcbhmr/WebIDL-Go/blob/main/LICENSE).
+Licensed under [the CC-BY-4.0 license](LICENSE).
 
 ## Status of this document
 
