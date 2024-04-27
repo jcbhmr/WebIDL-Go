@@ -1,3 +1,7 @@
+---
+title: Go language binding for Web IDL
+---
+
 # Go language binding for Web IDL
 
 💡 Inspired by [Java language binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/) \
