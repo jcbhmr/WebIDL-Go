@@ -1,4 +1,7 @@
-# Go language binding for Web IDL
+---
+markdown: GFM
+title: Go language binding for Web IDL
+---
 
 💡 Inspired by [Java language binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/) \
 🛑 **Very unofficial.** Not associated with W3C or WHATWG in any way.
