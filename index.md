@@ -4,51 +4,73 @@ title: Go language binding for Web IDL
 
 # Go language binding for Web IDL
 
-💡 Inspired by [Java language binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/) \
-🛑 **Very unofficial.** Not associated with W3C or WHATWG in any way.
-
-Copyright 2024 Jacob Hummer \
-Licensed under [the CC-BY-4.0 license](LICENSE).
+- **This version:** https://jcbhmr.me/WebIDL-Go/
+- **Issue tracking:** [GitHub](https://github.com/jcbhmr/WebIDL-Rust/issues)
+- **Repository:** https://github.com/jcbhmr/WebIDL-Go
+- **Editors:** [Jacob Hummer](https://jcbhmr.me)
+- **License:** [CC-BY-4.0 License](https://github.com/jcbhmr/WebIDL-Rust/blob/main/LICENSE)
 
 ## Status of this document
 
-**🛑 This is not a standards document.** This is just one guy's ideas of how to map some types. It's sorta like a mini reference book at this point for future me.
+💡 Inspired by [Java language binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/). 🛑 **Very unofficial.** Not associated with W3C or WHATWG in any way. **This is not a standards document.** This is just a rough collection of ideas on how to map some types from Web IDL to Go. It's sorta like a mini reference book. If you have a better way to do things, chances are you're right! [Open an Issue!](https://github.com/jcbhmr/WebIDL-Rust/issues/new) I'm always looking for more egonomic & better ways to translate Web IDL concepts to Go. ❤️
+
+## Table of contents
+
+1. [Introduction](#introduction)
+2. [Go binding](#go-binding)
+    1. [Names](#names)
+    2. [Go type mapping](#go-type-mapping)
+        1. [Restricted `float` and `double`](#restricted-float-and-double)
 
 ## Introduction
 
-This document tries to outline some good ideas for translating Web IDL types used in Web IDL specifications like [the Fetch API](https://fetch.spec.whatwg.org/) and [the DOM API](https://dom.spec.whatwg.org/) into native and (at least to some degree) ergonomic Go types. For example, how would you map a `Promise<ArrayBuffer>` for `Response#arrayBuffer()` into Go? What about `Node`?
+**Use case 1:** Ergonomically exposing JavaScript APIs to Go. There are currently a few Go wrappers that attempt to provide a wrapper around JavaScript APIs like [the DOM API](https://dom.spec.whatwg.org/) or [the Fetch API](https://fetch.spec.whatwg.org/) so that you can write Go code that calls out to these JavaScript platform features without using `syscall/js` to `.Get("document")` `.Get("querySelector")` over and over. These interfaces all differ slightly in how they map certain Web IDL (and JavaScript-land) concepts into Go-land. This document aims to provide some conventions for how bindings between Web IDL (which is usually through a JavaScript & WASM layer) and Go-land should be represented on the Go side of things.
+
+**Use case 2:** Outlining patterns and conventions to write Go-native implementations of web and web-adjacent Web IDL-based specifications. For example [the Web Share API](https://w3c.github.io/web-share/) could be brought to Go desktop & CLI apps with a `share()` function or similar. This is particularily poignant for writing implementations like [the Fetch API](https://fetch.spec.whatwg.org/) that use the `syscall/js` functions from the browser runtime when `GOOS=js` but also offer a native Go implementation for use outside JS+WASM environments.
+
+> The original use case for this was to play around and implement the JavaScript `fetch()` function in Go. Problems arose when there were diverging ways to implement `Promise<Response>`. Should it be a `Promise[T]`? A channel? How would it integrate with other concurrency stuff? What if this theoretical `github.com/octocat/fetch` package could use the browser's native `fetch()` API if it were running in `GOOS=js`? Then it spiraled from there into questions like "well how do you represent DOM node inheritance?" and "what if I want to downcast a `Node` from `QuerySelector()` into an `HTMLAnchorElement`?". All of that meant I had to think and pick an arbitrary way to represent Web IDL types in Go-land.
+
+&mdash; [@jcbhmr](https://jcbhmr.me/)
+
+This document tries to outline some good ideas for translating Web IDL types used in Web IDL specifications like [the Fetch API](https://fetch.spec.whatwg.org/) and [the DOM API](https://dom.spec.whatwg.org/) into native and (at least to some degree) ergonomic Go types. For example, how would you map a `Promise<ArrayBuffer>` for `Response#arrayBuffer()` into Go? What about `Node` or `HTMLElement`?
+
+**ℹ Example:** Here's some examples of some popular Web IDL interfaces and how they would map to Go-land types using the conventions outlined in this document.
 
 <table><td>
 
-```webidl
+```ts
 interface Response {
     // ...
-}
-Response includes Body
+};
+Response includes Body;
 
 interface mixin Body {
     Promise<ArrayBuffer> arrayBuffer();
+    Promise<any> json();
+    Promise<USVString> text();
     // ...
-}
+};
 ```
 
 <td>
 
 ```go
-type Response struct {
-    // ...
+type Response interface {
+  Body
+  // ...
 }
 
-var _ Body = (*Response)(nil)
-
-interface Body {
-    ArrayBuffer() <-chan Unpack[[]byte, error]
+type Body interface {
+  ArrayBuffer() promise[[]byte]
+  JSON() promise[any]
+  Text() promise[string]
+  // ...
 }
 ```
 
 <tr><td>
 
-```webidl
+```ts
 interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
   const unsigned short ATTRIBUTE_NODE = 2;
@@ -63,17 +85,76 @@ interface Node : EventTarget {
 
 ```go
 const (
-    NodeElementNode = 1
-    NodeAttributeNode = 2
-    // ...
+  NodeElementNode uint16 = 1
+  NodeAttributeNode uint16 = 2
+  // ...
 )
 
-type Node struct {
-    EventTarget
-    NodeType() uint16
-    NodeValue() *string
-    SetNodeValue(v *string)
-    CloneNode(deep *bool) (*Node, error)
+type Node interface {
+  EventTarget
+  NodeType() uint16
+  NodeValue() *string
+  SetNodeValue(v *string)
+  CloneNode() (Node, error)
+  CloneNodeDeep(deep bool) (Node, error)
+}
+```
+
+<tr><td>
+
+```ts
+interface EventTarget {
+  undefined addEventListener(
+    DOMString type,
+    EventListener? callback,
+    optional (AddEventListenerOptions or boolean) options = {}
+  );
+  // ...
+};
+
+callback interface EventListener {
+  undefined handleEvent(Event event);
+};
+```
+
+<td>
+
+```go
+type EventTarget interface {
+  AddEventListener(
+    type_ string,
+    callback EventListenerFunc
+  )
+  AddEventListenerEventListener(
+    type_ string,
+    callback EventListener
+  )
+  AddEventListenerOptions(
+    type_ string,
+    callback EventListener,
+    options bool
+  )
+  AddEventListenerOptionsAddEventListenerOptions(
+    type_ string,
+    callback EventListener,
+    options AddEventListenerOptions
+  )
+  AddEventListenerEventListenerOptions(
+    type_ string,
+    callbackObject EventListenerObject,
+    options bool
+  )
+  AddEventListenerEventListenerOptionsAddEventListenerOptions(
+    type_ string,
+    callbackObject EventListenerObject,
+    options AddEventListenerOptions
+  )
+  // ...
+}
+
+type EventListenerFunc = func(event Event)
+type EventListener interface {
+  HandleEvent(event Event)
 }
 ```
 
@@ -92,10 +173,11 @@ type Node struct {
 
 ### Go type mapping
 
+Here's some of the quick ones that are pretty intuitive and don't require much explaination.
+
 | Web IDL type | Go type |
 | --- | --- |
 | `any` | `any` |
-| `void` | Omit or `struct{}` |
 | `boolean` | `bool` |
 | `byte` | `int8` |
 | `octet` | `byte` |
@@ -103,15 +185,165 @@ type Node struct {
 | `unsigned short` | `uint16` |
 | `long` | `int32` |
 | `unsigned long` | `uint32` |
-| `float` | `float32` with `panic()` |
 | `unrestricted float` | `float32` |
-| `double` | `float64` with documentation |
 | `unrestricted double` | `float64` |
-| `object` | `any` with `panic()` |
+| `bigint` | `math/big.Int` |
+| `DOMString` | `string` |
+| `ByteString` | `string` |
+| `symbol` | _Not specified_ |
 
-In places where `undefined` should be treated like `void` (like `Promise<undefined>`) use `struct{}`. Otherwise if it makes sense use `nil`; usually coupled with a `nil`-able type like in a `(DOMString or undefined)` either-or return type.
+#### Restricted `float` and `double`
+
+Remember that `float64` includes the `NaN` and `Inf` values in its type domain. The Web IDL `unrestricted double` is directly equivalent to Go's `float64`. For `double` (the restricted variant) implementations **should `panic()`** if a non-number value (like `NaN` or `-Inf`) was passed. This applies to `float` and `double` Web IDL types.
+
+**ℹ Example:**
+
+```go
+func Add(a float64, b float64) float64 {
+  if math.IsNaN(a) || math.IsInf(a, 0) {
+    panic(errors.New("a is not in restricted double range"))
+  }
+  if math.IsNaN(b) || math.IsInf(b, 0) {
+    panic(errors.New("b is not in restricted double range"))
+  }
+  return a + b
+}
+```
+
+#### `USVString`
+
+> The USVString type corresponds to scalar value strings. Depending on the context, these can be treated as sequences of either 16-bit unsigned integer code units or scalar values.
+
+Honestly I'm not entirely sure that this is the right way to do things but this is how I've been doing the Go `string` to Web IDL `USVString` conversion:
+
+```go
+func DoThing(v string) {
+  if !utf8.Valid(v) {
+    panic(errors.New("v is not a well-formed UTF-8 string"))
+  }
+}
+```
+
+If you have a better explaination or some other insight into what `DOMString` vs `USVString` means in the context of a Go string I'm all ears. 😊
+
+#### `undefined`
+
+**In function return position** `undefined` should be omitted from the Go function signature.
+
+**ℹ Example:**
+
+<table><td>
+
+```ts
+interface Storage {
+  setter undefined setItem(DOMString name, DOMString value);
+  // ...
+};
+```
+
+<td>
+
+```go
+interface Storage {
+  SetItem(name string, value string)
+}
+```
+
+</table>
+
+**When used in `Promise<undefined>`** or other places where a type is required use `struct{}`.
+
+**When part of a type union** like `(DOMString or undefined)` use a `nil`-able variant of the other union members.
+
+**ℹ Example:**
+
+<table><td>
+
+```ts
+interface CustomElementRegistry {
+  (CustomElementConstructor or undefined) get(DOMString name);
+  // ...
+};
+
+callback CustomElementConstructor = HTMLElement ();
+```
+
+<td>
+
+```go
+interface CustomElementRegistry {
+  // Since CustomElementConstructor is nil-able
+  Get(name string) CustomElementConstructor
+}
+
+type CustomElementConstructor = func() HTMLElement
+```
+
+</table>
+
+#### `object` type
+
+`object` is similar to `any` but it **cannot be `null` or a primitive**. In Go-land that means it's like `any` just with a `panic()` check to make sure it's not `nil` or a `string|int|bool|etc...` type.
+
+**ℹ Example:**
+
+```go
+func DoThing(v any) {
+  if v == nil || reflect.ValueOf(v).Kind() < reflect.Array {
+    panic(errors.New("v is not object type"))
+  }
+}
+```
 
 #### Interface types
+
+Interfaces in Web IDL are the basic building blocks of the APIs that they define. They are equivalent to `class` types in JavaScript and Java. They act like `*T` class pointers in C++. In Go you might assume that we could represent these `interface` declarations in a similar way with `struct`. That has some a critical lacking feature though: downcasting.
+
+You can't downcast a `struct` `*Node` into a `struct` `*HTMLAudioElement` in Go. You can only cast with `interface`-es. This means that if `.QuerySelector()` returns a `*Element` then there's no way to try to `instanceof HTMLAnchorElement` or `instanceof HTMLVideoElement` and then cast it to those types to use `.click()` or `.play()`.
+
+**ℹ Example:** How would you do this in Go when using `*Node` as the return type?
+
+```java
+// This is very ergonomic in Java.
+var aOrVideo = document.querySelector("#video")
+if (aOrVideo instanceof HTMLVideoElement video) {
+  video.play()
+} else if (aOrVideo instanceof HTMLAnchorElement a) {
+  a.click()
+}
+```
+
+The solution is to use `interface` types instead. Go interfaces let us freely cast between things at runtime. A helpful trick is to **use _sealed_ interfaces** to brand your own types similar to how JavaScript Web IDL works.
+
+**ℹ Example:**
+
+```go
+type Node interface {
+  NodeValue() *string
+  SetNodeValue(v *string)
+  // ...
+  sealedNode()
+}
+type nodeData struct {}
+func (n *nodeData) sealedNode() {}
+var _ Node = (*nodeData)(nil)
+
+type Element interface {
+  Node
+  AppendChild(...) (Node, error)
+  Remove() error
+  InnerHTML() string
+  // ...
+  sealedElement()
+}
+type elementData struct {}
+func (e *elementData) sealedNode() {}
+var _ Element = (*elementData)(nil)
+```
+
+**Interface constructors** are pulled out into a `New___()` function where you fill in the blank with the interface name. For example the `Request` interface has a constructor `NewRequest()`. For interfaces without a constructor you should omit this `New___()` function. Use the same rules as described in function overloading to create multiple variants of the constructor if there are multiple signatures.
+
+**ℹ Example:**
 
 <table><td>
 
@@ -128,29 +360,25 @@ interface Headers {
 <td>
 
 ```go
-type Headers struct{}
-func NewHeaders(...) *Headers
-func (h *Headers) Append(name string, value string)
-func (h *Headers) Delete(name string)
-// ...
+type Headers interface {
+  Append(name string, value string)
+  Delete(name string)
+  // ...
+}
+func NewHeaders() Headers {}
+func NewHeadersInit(init map[string]string) Headers {}
+func NewHeadersInitStringsList(init [][]string) Headers {}
 ```
 
 </table>
 
-You could alternatively model these types as interfaces without concrete types like this:
+##### `interface mixin`
 
-```go
-type Headers interface {
-    Append(name string, value string)
-    Delete(name string)
-    // ...
-}
-func NewHeaders(...) Headers
-```
+Mixins are used by Web IDL to define a set of functions implemented by multiple interfaces. The best example of this is the `Body` mixin which defines `.arrayBuffer()`, `.json()`, and `.text()` on `Request` and `Response` objects.
 
-But this comes with the minor downside that it just _feels_ a bit off to be using a non-concrete `interface` type for a concrete type that you construct and pass around.
+The corollary to this in Go is just another interface!
 
-#### `interface mixin`
+**ℹ Example:**
 
 <table><td>
 
@@ -160,6 +388,9 @@ interface mixin Body {
   [NewObject] Promise<ArrayBuffer> arrayBuffer();
   // ...
 };
+
+Request includes Body;
+Response includes Body;
 ```
 
 <td>
@@ -167,23 +398,119 @@ interface mixin Body {
 ```go
 type Body interface {
   BodyUsed() bool
-  ArrayBuffer() <-chan result[[]byte]
+  ArrayBuffer() promise[[]byte]
 	// ...
+}
+
+type Request interface {
+  Body
+}
+type Response interface {
+  Body
 }
 ```
 		       
 </table>
 
-You can use the `var _ SomeInterface = (*MyStruct)(nil)` hack to do a compile-time assertion that `*MyStruct` is assignable to `SomeInterface` thus validating that `MyStruct` correctly implements `SomeInterface`.
+#### Callback interface types
+
+This concept is a way to codify the below into Web IDL:
+
+```js
+// Both of these work!
+globalThis.addEventListener("load", { handleEvent: () => console.log("handleEvent") })
+globalThis.addEventListener("load", () => console.log("function"))
+```
+
+It's rarely used. Trait it as though it were a union of `type ___Func = func(...)...` and `type ___ interface {...}` types.
+
+<table><td>
+
+```ts
+interface EventTarget {
+  undefined addEventListener(
+    DOMString type,
+    EventListener? callback,
+    optional (AddEventListenerOptions or boolean) options = {}
+  );
+  // ...
+};
+
+callback interface EventListener {
+  undefined handleEvent(Event event);
+};
+```
+
+<td>
+
+```go
+type EventTarget interface {
+  AddEventListener(
+    type_ string,
+    callback EventListenerFunc
+  )
+  AddEventListenerEventListener(
+    type_ string,
+    callback EventListener
+  )
+  AddEventListenerOptions(
+    type_ string,
+    callback EventListener,
+    options bool
+  )
+  AddEventListenerOptionsAddEventListenerOptions(
+    type_ string,
+    callback EventListener,
+    options AddEventListenerOptions
+  )
+  AddEventListenerEventListenerOptions(
+    type_ string,
+    callbackObject EventListenerObject,
+    options bool
+  )
+  AddEventListenerEventListenerOptionsAddEventListenerOptions(
+    type_ string,
+    callbackObject EventListenerObject,
+    options AddEventListenerOptions
+  )
+  // ...
+}
+
+type EventListenerFunc = func(event Event)
+type EventListener interface {
+  HandleEvent(event Event)
+}
+```
+
+</table>
 
 #### Dictionary types
+
+Web IDL interfaces map quite well to Go `struct`. The biggest obstacle here is optional `struct` fields. Since Go doesn't have a Rust `Option<T>` or a Java `null`-able primitive (`Integer`, `Double`, `String`) objects it means we need to use something else. The most Go-like way of doing things is with `nil`-able types. For interfaces this is no sweat! For structs it just means passing by `&theStruct`. For primitives it means passing by `*string`.
+
+**💡 Tip:** Go doesn't allow you to take the `&` address of literal values. You can use a helper function like this for that:
+
+```go
+func ptr[T any](v T) *T {
+  return &v
+}
+
+func DoThing(v *string) {}
+
+func main() {
+  DoThing(ptr("hello ptr magic!"))
+}
+```
+
+**ℹ Example:**
 	
 <table><td>
 
 ```webidl
 dictionary ResponseInit {
   unsigned short status = 200;
-	// ...
+  ByteString statusText = "";
+  HeadersInit headers;
 };
 ```
 
@@ -192,78 +519,17 @@ dictionary ResponseInit {
 ```go
 type ResponseInit struct {
   Status *uint16
-	// ...
+  StatusText *string
+  Headers map[string]string
+  HeadersStringsList [][]string
 }
 ```
 	
 </table>
 
-All properties of the dictionary that are optional (i.e. not marked with `required`) should be `nil`-able. For primitive types and struct types this means using pointers.
-
-Dictionary objects actually would make more sense if they could be expressed in terms of _any object that has `.Status` as a `*uint16` but Go doesn't have that. The next best thing along that route is `interface` stuff. But that comes with the problem of needing to define functions for these properties which quickly gets in the way of properties named the same thing in struct literals. The TLDR is that this doesn't compile:
-
-```go
-type TheOptionsI interface {
-    Required() *bool
-}
-
-type TheOptions struct {
-    Required *bool
-}
-
-func (t *TheOptions) Required() *bool {
-    return t.Required
-}
-
-func DoThing(options TheOptionsI) {
-    // ...
-}
-
-func main() {
-    DoThing(&TheOptions{
-        Required: lo.ToPtr(true)
-    })
-}
-```
-
-```
-./prog.go:19:22: field and method with the same name Required
-	./prog.go:16:2: other declaration of Required
-./prog.go:20:9: cannot use t.Required (value of type func() *bool) as *bool value in return statement
-```
-
-So supporting arbitrary objects that fit the field name requirements of the interface (as functions) like `.Required()` doesn't work **because it interferes with providing those fields as struct literals**.
-
-You also can't get around this with generics. Generic parameter interfaces must be `interface{T|U|V}` unions and normal method interfaces don't work.
-
-```go
-type TheOptionsI interface {
-	Required() *bool
-}
-
-type TheOptions struct {
-	Required *bool
-}
-
-func DoThing[T *TheOptions | TheOptionsI](options T) {
-	// ...
-}
-
-func main() {
-	fmt.Println("Hello, 世界")
-	DoThing(&TheOptions{
-		Required: lo.ToPtr(true),
-	})
-}
-```
-
-```
-./prog.go:19:30: cannot use main.TheOptionsI in union (main.TheOptionsI contains methods)
-```
-
 #### Enumeration types
 
-Similar JavaScript and Java, there is just a type. There's no accompanying list of valid enum values exposed as a programmatic object or static list. The valid values are provided in documentation and you should provide them as string literals. If the provided string isn't a valid enum value you should `panic()` instead of returning an `error`.
+Similar JavaScript and Java there is just a type. There's no accompanying list of valid enum values exposed as a programmatic object or static list. The valid values are provided in documentation and you should provide them as string literals. If the provided string isn't a valid enum value you should `panic()` instead of returning an `error`.
 
 <table><td>
 
@@ -294,80 +560,8 @@ func DoThing(priority RequestPriority) {
 
 #### `Promise<T>`
 
-**`Promise<undefined>` with no `error`** can be a `<-chan struct{}` that emits a single `struct{}{}` value.
-
 ```go
-func WaitABit() <-chan struct{} {
-  c := make(chan struct{})
-  go func(){
-    defer close(c)
-    time.Sleep(2000 * time.Millisecond)
-    c <- struct{}{}
-  }()
-  return c
+type future[T] interface {
+  Wait() (T, error)
 }
 ```
-
-**`Promise<T>` with no `error`** can be modeled as a `<-chan T`. The `chan` should provide **a single value**.
-
-```go
-func Gimme() <-chan int {
-  c := make(chan int)
-  go func(){
-    defer close(c)
-    time.Sleep(200 * time.Millisecond)
-    c <- 42
-  }()
-  return c
-}
-```
-
-**`Promise<undefined>` with `error`** uses `<-chan error`; same as `Promise<T>` where `T` would be the Go `error` type. 
-
-```go
-func FailSoon() <-chan error {
-  c := make(chan error)
-  go func(){
-    defer close(c)
-    time.Sleep(200 * time.Millisecond)
-    c <- errors.New("timed out")
-  }()
-  return c
-}
-```
-
-**`Promise<T>` with `error`** should return a `<-chan R` where `R` is some kind of struct, interface, etc. that has a `.Unpack()` method which returns the needed `(T, error)` multivalue.
-
-```go
-// Don't actually need to export this.
-type packed[A any, B any] struct {
-	A A
-    B B
-}
-
-func (r packed[A, B]) Unpack() (A, B) {
-	return r.A, r.B
-}
-
-func AskUser() <-chan packed[string, error] {
-	c := make(chan packed[string, error])
-	go func() {
-		defer close(c)
-		time.Sleep(200 * time.Millisecond)
-		if rand.Intn(2) == 1 {
-			c <- packed[string, error]{"i like go", nil}
-		} else {
-			c <- packed[string, error]{"", errors.New("bad luck!")}
-			return
-		}
-	}()
-	return c
-}
-
-func main() {
-	res, err := (<-AskUser()).Unpack()
-	fmt.Println(res, err)
-}
-```
-
-Note that we don't really care what the `R` result-like type is as long as it has a `.Unpack()` method on it which returns the multivalues.
