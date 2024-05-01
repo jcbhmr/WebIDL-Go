@@ -4,20 +4,24 @@ description: 🎉🎉🎉🎉🎉🎉🎉
 ---
 
 <style>
-  dt { margin-block: 0 }
-  dd { margin-block: 0 }
+  dt { margin-block: 0 !important }
+  dd { margin-block: 0 !important }
 </style>
 
 # Go language binding for Web IDL
 
 This version
 :   https://jcbhmr.me/WebIDL-Go/
+
 Issue tracking
 :   [GitHub](https://github.com/jcbhmr/WebIDL-Rust/issues)
+
 Repository
 :   https://github.com/jcbhmr/WebIDL-Go
+
 Editors
 :   [Jacob Hummer](https://jcbhmr.me)
+
 License
 :   [CC-BY-4.0 License](https://github.com/jcbhmr/WebIDL-Rust/blob/main/LICENSE)
 
