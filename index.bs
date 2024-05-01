@@ -4,11 +4,147 @@ Shortname: WebIDL-Go
 Status: DREAM
 Repository: jcbhmr/WebIDL-Go
 URL: https://jcbhmr.me/WebIDL-Go/
-Editor: Jacob Hummer, jcbhmr@outlook.com, https://jcbhmr.me/
+Editor: Jacob Hummer, https://jcbhmr.me/
 Abstract: Outline conventions & ideas for mapping Web IDL concepts & types into native Go patterns, conventions, and types.
 Markup Shorthands: markdown yes, css no
+Boilerplate: omit conformance
+!Participate: <a href="https://github.com/jcbhmr/WebIDL-Go">https://github.com/jcbhmr/WebIDL-Go</a>
 </pre>
 
-# Goals # {#goals}
+<div boilerplate="copyright">
+Copyright © Jacob Hummer. This work is licensed under a [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/). To the extent portions of it are incorporated into source code, such portions in the source code are licensed under the [BSD 3-Clause License](https://opensource.org/licenses/BSD-3-Clause) instead.
+</div>
 
-Introduction here.
+# Introduction # {#intro}
+
+💡 Inspired by [Java language binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/). 🛑 **Very unofficial.** Not associated with W3C or WHATWG in any way. **This is not a standards document.** This is just a rough collection of ideas on how to map some types from Web IDL to Go. It's sorta like a mini reference book. If you have a better way to do things, chances are you're right! [Open an Issue!](https://github.com/jcbhmr/WebIDL-Rust/issues/new) I'm always looking for more egonomic & better ways to translate Web IDL concepts to Go. ❤️
+
+**Use case 1:** Ergonomically exposing JavaScript APIs to Go. There are currently a few Go wrappers that attempt to provide a wrapper around JavaScript APIs like [the DOM API](https://dom.spec.whatwg.org/) or [the Fetch API](https://fetch.spec.whatwg.org/) so that you can write Go code that calls out to these JavaScript platform features without using `syscall/js` to `.Get("document")` `.Get("querySelector")` over and over. These interfaces all differ slightly in how they map certain Web IDL (and JavaScript-land) concepts into Go-land. This document aims to provide some conventions for how bindings between Web IDL (which is usually through a JavaScript & WASM layer) and Go-land should be represented on the Go side of things.
+
+**Use case 2:** Outlining patterns and conventions to write Go-native implementations of web and web-adjacent Web IDL-based specifications. For example [the Web Share API](https://w3c.github.io/web-share/) could be brought to Go desktop & CLI apps with a `share()` function or similar. This is particularily poignant for writing implementations like [the Fetch API](https://fetch.spec.whatwg.org/) that use the `syscall/js` functions from the browser runtime when `GOOS=js` but also offer a native Go implementation for use outside JS+WASM environments.
+
+> The original use case for this was to play around and implement the JavaScript `fetch()` function in Go. Problems arose when there were diverging ways to implement `Promise<Response>`. Should it be a `Promise[T]`? A channel? How would it integrate with other concurrency stuff? What if this theoretical `github.com/octocat/fetch` package could use the browser's native `fetch()` API if it were running in `GOOS=js`? Then it spiraled from there into questions like "well how do you represent DOM node inheritance?" and "what if I want to downcast a `Node` from `QuerySelector()` into an `HTMLAnchorElement`?". All of that meant I had to think and pick an arbitrary way to represent Web IDL types in Go-land.
+
+&mdash; [@jcbhmr](https://jcbhmr.me/)
+
+This document tries to outline some good ideas for translating Web IDL types used in Web IDL specifications like [the Fetch API](https://fetch.spec.whatwg.org/) and [the DOM API](https://dom.spec.whatwg.org/) into native and (at least to some degree) ergonomic Go types. For example, how would you map a `Promise<ArrayBuffer>` for `Response#arrayBuffer()` into Go? What about `Node` or `HTMLElement`?
+
+<div class=example>
+
+```ts
+interface Response {
+    // ...
+};
+Response includes Body;
+
+interface mixin Body {
+    Promise<ArrayBuffer> arrayBuffer();
+    Promise<any> json();
+    Promise<USVString> text();
+    // ...
+};
+```
+
+```go
+type Response interface {
+  Body
+  // ...
+}
+
+type Body interface {
+  ArrayBuffer() promise[[]byte]
+  JSON() promise[any]
+  Text() promise[string]
+  // ...
+}
+```
+
+Where `promise[T]` is anything that has a `.Wait()` method which unpacks into `(T, error)`. There is no `promise[T]` interface.
+
+</div>
+
+<div class=example>
+
+```ts
+interface Node : EventTarget {
+  const unsigned short ELEMENT_NODE = 1;
+  const unsigned short ATTRIBUTE_NODE = 2;
+  readonly attribute unsigned short nodeType;
+  attribute DOMString? nodeValue;
+  Node cloneNode(optional boolean deep = false);
+  // ...
+}
+```
+
+```go
+const (
+  NodeElementNode uint16 = 1
+  NodeAttributeNode uint16 = 2
+  // ...
+)
+
+type Node interface {
+  EventTarget
+  NodeType() uint16
+  NodeValue() *string
+  SetNodeValue(v *string)
+  CloneNode() (Node, error)
+  CloneNodeDeep(deep bool) (Node, error)
+}
+```
+
+</div>
+
+```ts
+interface EventTarget {
+  undefined addEventListener(
+    DOMString type,
+    EventListener? callback,
+    optional (AddEventListenerOptions or boolean) options = {}
+  );
+  // ...
+};
+
+callback interface EventListener {
+  undefined handleEvent(Event event);
+};
+```
+
+```go
+type EventTarget interface {
+  AddEventListener(
+    type_ string,
+    callback EventListenerFunc
+  )
+  AddEventListenerEventListener(
+    type_ string,
+    callback EventListener
+  )
+  AddEventListenerOptions(
+    type_ string,
+    callback EventListener,
+    options bool
+  )
+  AddEventListenerOptionsAddEventListenerOptions(
+    type_ string,
+    callback EventListener,
+    options AddEventListenerOptions
+  )
+  AddEventListenerEventListenerOptions(
+    type_ string,
+    callbackObject EventListenerObject,
+    options bool
+  )
+  AddEventListenerEventListenerOptionsAddEventListenerOptions(
+    type_ string,
+    callbackObject EventListenerObject,
+    options AddEventListenerOptions
+  )
+  // ...
+}
+
+type EventListenerFunc = func(event Event)
+type EventListener interface {
+  HandleEvent(event Event)
+}
+```

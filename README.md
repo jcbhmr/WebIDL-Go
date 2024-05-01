@@ -4,4 +4,4 @@
 
 ## Development
 
-This website is deployed using the default GitHub Pages Jekyll theme from the `docs/` folder.
+TODO: Add development instructions
