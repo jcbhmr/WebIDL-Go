@@ -17,10 +17,14 @@ title: Go language binding for Web IDL
 ## Table of contents
 
 1. [Introduction](#introduction)
+    1. [Examples](#examples)
 2. [Go binding](#go-binding)
     1. [Names](#names)
     2. [Go type mapping](#go-type-mapping)
         1. [Restricted `float` and `double`](#restricted-float-and-double)
+
+* TOC
+{:toc}
 
 ## Introduction
 
