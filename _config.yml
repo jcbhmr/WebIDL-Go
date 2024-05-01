@@ -1,3 +1,5 @@
-markdown: GFM
+kramdown:
+  input: GFM
+  parse_block_html: true
 name: ""
 title: false
