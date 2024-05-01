@@ -1,14 +1,31 @@
 ---
 title: Go language binding for Web IDL
+description: 🎉🎉🎉🎉🎉🎉🎉
 ---
 
 # Go language binding for Web IDL
 
-- **This version:** https://jcbhmr.me/WebIDL-Go/
-- **Issue tracking:** [GitHub](https://github.com/jcbhmr/WebIDL-Rust/issues)
-- **Repository:** https://github.com/jcbhmr/WebIDL-Go
-- **Editors:** [Jacob Hummer](https://jcbhmr.me)
-- **License:** [CC-BY-4.0 License](https://github.com/jcbhmr/WebIDL-Rust/blob/main/LICENSE)
+<dl>
+  <dt>This version:</dt>
+  <dd><a href="https://jcbhmr.me/WebIDL-Go/">https://jcbhmr.me/WebIDL-Go/</a></dd>
+  
+  <dt>Issue tracking:</dt>
+  <dd><a href="https://github.com/jcbhmr/WebIDL-Rust/issues">GitHub</a></dd>
+  
+  <dt>Repository:</dt>
+  <dd><a href="https://github.com/jcbhmr/WebIDL-Go">https://github.com/jcbhmr/WebIDL-Go</a></dd>
+  
+  <dt>Editors:</dt>
+  <dd><a href="https://jcbhmr.me">Jacob Hummer</a></dd>
+  
+  <dt>License:</dt>
+  <dd><a href="https://github.com/jcbhmr/WebIDL-Rust/blob/main/LICENSE">CC-BY-4.0 License</a></dd>
+</dl>
+
+
+## Abstract
+
+TODO: Write a page description
 
 ## Status of this document
 
@@ -17,14 +34,10 @@ title: Go language binding for Web IDL
 ## Table of contents
 
 1. [Introduction](#introduction)
-    1. [Examples](#examples)
 2. [Go binding](#go-binding)
     1. [Names](#names)
     2. [Go type mapping](#go-type-mapping)
         1. [Restricted `float` and `double`](#restricted-float-and-double)
-
-* TOC
-{:toc}
 
 ## Introduction
 
