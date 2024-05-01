@@ -1,18 +1,14 @@
 <pre class='metadata'>
-Title: Your Spec Title
-Shortname: your-spec
-Level: 1
-Status: w3c/UD
-Group: WGNAMEORWHATEVER
-Repository: org/repo-name
-URL: http://example.com/url-this-spec-will-live-at
-Editor: Your Name, Your Company http://example.com/your-company, your-email@example.com, http://example.com/your-personal-website
-Abstract: A short description of your spec, one or two sentences.
-Complain About: accidental-2119 yes, missing-example-ids yes
+Title: Go language binding for Web IDL
+Shortname: WebIDL-Go
+Status: DREAM
+Repository: jcbhmr/WebIDL-Go
+URL: https://jcbhmr.me/WebIDL-Go/
+Editor: Jacob Hummer, jcbhmr@outlook.com, https://jcbhmr.me/
+Abstract: Outline conventions & ideas for mapping Web IDL concepts & types into native Go patterns, conventions, and types.
 Markup Shorthands: markdown yes, css no
 </pre>
 
-Introduction {#intro}
-=====================
+# Goals # {#goals}
 
 Introduction here.
