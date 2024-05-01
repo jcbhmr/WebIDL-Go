@@ -31,11 +31,8 @@ TODO: Write a page description
 
 ## Table of contents
 
-1. [Introduction](#introduction)
-2. [Go binding](#go-binding)
-    1. [Names](#names)
-    2. [Go type mapping](#go-type-mapping)
-        1. [Restricted `float` and `double`](#restricted-float-and-double)
+1. TOC
+{:toc}
 
 ## Introduction
 
