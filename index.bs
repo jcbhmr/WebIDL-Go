@@ -1,6 +1,6 @@
 ---
 title: Go language binding for Web IDL
-description: 🎉🎉🎉🎉🎉🎉🎉
+description: TODO; This should be same as abstract
 ---
 
 <style>
