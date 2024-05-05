@@ -4,4 +4,7 @@
 
 ## Development
 
-TODO: Add development instructions
+```sh
+go run task.go setup
+go run task.go dev
+```

@@ -266,7 +266,7 @@ interface Node {
 };
 interface Window {
   undefined alert(DOMString message);
-}l
+};
 ```
 ```go
 type Node interface {
@@ -331,7 +331,7 @@ Response includes Body;
 type Body interface {
   BodyUsed() bool
   ArrayBuffer() func() ([]byte, error)
-	// ...
+  // ...
 }
 type Request interface {
   Body
@@ -361,31 +361,166 @@ It's rarely used.
 Treat callback interfaces as though they were just a union type of the function signature and an unnamed interface with that single method defined. Practically, this means that callback interfaces are represented as `any`.
 
 <div class=example>
+```webidl
+callback interface EventListener {
+  undefined handleEvent(Event event);
+};
+```
 ```go
-// You can edit this code!
-// Click here and start typing.
-package main
-
-import "fmt"
-
-func DoThing(a any) {
-	if b, ok := a.(interface{ Ok() }); ok {
-		b.Ok()
-	} else {
-		fmt.Println("not ok")
-	}
-}
-
-type C struct{}
-
-func (C) Ok() {
-	fmt.Println("ok")
-}
-
-func main() {
-	x := &C{}
-	DoThing(x)
-	// Output: ok
+func (e *eventListenerImpl) AddEventListener(type_ string, listener any) {
+  if b, ok := a.(interface{ HandleEvent(Event) }); ok {
+    // Can use like this:
+    b.HandleEvent(event)
+  } else if b, ok := a.(func(Event)); ok {
+    // Can use like this:
+    b(event)
+  } else {
+    panic("listener is not an EventListener")
+  }
 }
 ```
 </div>
+
+### Dictionary types ### {#go-dictionary}
+
+Web IDL interfaces map quite well to Go `struct`. The biggest obstacle here is optional `struct` fields. Since Go doesn't have a Rust `Option<T>` or a Java `null`-able primitive (`Integer`, `Double`, `String`) objects it means we need to use something else. The most Go-like way of doing things is with `nil`-able types. For interfaces this is no sweat; interfaces are always `nil`-able. For primitives it means passing by `*string` instead of `string`.
+
+<div class=note>
+
+Go doesn't let you to take the `&` address of literal values. You can use a helper function like this for that:
+
+```go
+func ptr[T any](v T) *T {
+  return &v
+}
+
+func DoThing(v *string) {}
+
+func main() {
+  // Doesn't work 😢
+  // DoThing(&"hello ptr magic!")
+
+  // Works! 😄
+  DoThing(ptr("hello ptr magic!"))
+}
+```
+</div>
+
+<div class=example>
+```webidl
+dictionary ResponseInit {
+  unsigned short status = 200;
+  ByteString statusText = "";
+  HeadersInit headers;
+};
+```
+```go
+type ResponseInit struct {
+  Status *uint16
+  StatusText *string
+  Headers any
+}
+```
+</div>
+
+<p class=note>
+Code that uses these dictionaries is encouraged to attach `.safeStatus()` and `.safeStatusText()` methods to the `ResponseInit` struct to return the dictionary's default values if the fields are `nil`.
+</p>
+
+Dictionaries that extend other dictionaries should be **completely flattened** into a single `struct`. This is more ergonomic from a consumer's perspective since all the fields are flattened one level deep instead of being nested.
+
+<div class=example>
+
+Here's an example of what this "flattening" aims to **avoid**. **This is the *incorrect* way to represent this Web IDL dictionary.**
+
+```webidl
+dictionary AddEventListenerOptions : EventListenerOptions {
+  boolean passive = false;
+  boolean once = false;
+};
+dictionary EventListenerOptions {
+  boolean capture = false;
+};
+```
+```go
+type AddEventListenerOptions struct {
+  EventListenerOptions
+  Passive *bool
+  Once *bool
+}
+type EventListenerOptions struct {
+  Capture *bool
+}
+```
+
+Why is this bad? Because it introduces an unnecessary level of nesting when constructing a dictionary which has an inheritance chain like {{AddEventListenerOptions}}. Since most of the use of these dictionaries will be in constructing them, not reading from them (which admittedly is very ergonomic with Go struct embedding) it's better to flatten them for the benefit of the user.
+
+```go
+// 🤷‍♀️ Not ideal.
+AddEventListener("click", listener, AddEventListenerOptions{
+  EventListenerOptions: EventListenerOptions{Capture: ptr(true)},
+  Passive: ptr(true),
+  Once: ptr(true),
+})
+
+// 👍 Better.
+AddEventListener("click", listener, AddEventListenerOptions{
+  Capture: ptr(true),
+  Passive: ptr(true),
+  Once: ptr(true),
+})
+```
+
+</div>
+
+### Enumeration types ### {#go-enumeration}
+
+Similar JavaScript and Java there is just a type alias to a `string`. There's no list of possible values or anything like that. You just use string literals and then panic/error if it doesn't match one of the expected values.
+
+<div class=example>
+```webidl
+enum RequestPriority { "high", "low", "auto" };
+```
+```go
+// enum RequestPriority { "high", "low", "auto" };
+type RequestPriority = string
+```
+</div>
+
+Know a better way? [Open an issue](https://github.com/jcbhmr/WebIDL-Go/issues/new) and tell me the better way! 😊
+
+### `Promise<T>` ### {#go-promise}
+
+Promises are a bit tricky in Go. Unlike `<-chan T`, a `Promise<T>` can be `await`-ed multiple times and will always spit out the same cached value. Similar to a `sync.OnceValue()` function. What this means is that just `<-chan T` isn't enough to represent a `Promise<T>` in Go. It falls apart specifically when you have a static `Promise<T>` that you want to `await` multiple times like {{ServiceWorkerContainer/ready}}.
+
+Instead, the solution is to use a getter function. The current idiom that seems favored by Go is to *return a closure* that you can call multiple times and will await/return the same value each time. Basically just return a `sync.OnceFunc()`, `sync.OnceValue()`, or `sync.OnceValues()`.
+
+Here's how you can represent `Promise<T>` in Go. The `func() (T, error)` signature **is what you return from the method**, not the signature of the method itself that returns the `Promise<T>`. The closure *is* the promise which can be called (awaited) at a later time or immediately any number of times.
+
+<pre class=simpledef>
+Promise&lt;T>: func() (T, error)
+Promise&lt;undefined>: func() error
+Infalliable Promise&lt;T>: func() T
+Infalliable Promise&lt;undefined>: func()
+</pre>
+
+An <dfn export>infalliable promise</dfn> is a promise that never errors. These are **extremely rare** in Web APIs since most things that are async call system-level operations that can often fail for arbitrary reasons. If you see a `Promise<T>` in Web IDL it's almost always a `Promise<T>` and not an infalliable promise.
+
+<p class=note>
+{{ServiceWorkerContainer/ready}} is an example of the rare case where a `Promise<T>` will never reject.
+</p>
+
+<div class=example>
+```webidl
+partial interface ServiceWorkerContainer {
+  readonly attribute Promise<ServiceWorkerRegistration> ready;
+};
+```
+```go
+type ServiceWorkerContainer interface {
+  Ready() func() ServiceWorkerRegistration
+}
+```
+</div>
+
+The returned closure should support being called concurrently. This means that the closure should be safe to call from multiple goroutines at the same time. `sync.OnceFunc()` and friends handle this for you.
