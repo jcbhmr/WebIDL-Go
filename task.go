@@ -8,27 +8,12 @@ import (
 	"os/exec"
 )
 
-func Setup() error {
-	cmd := exec.Command("pipx", "install", "bikeshed")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	cmd = exec.Command("bikeshed", "update")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
-}
-
 func Dev() error {
-	cmd := exec.Command("bikeshed", "serve")
+	cmd := exec.Command("go", "run", "github.com/jcbhmr/go-bikeshed/cmd/bikeshed", "serve")
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	log.Printf("$ %s", cmd.String())
 	return cmd.Run()
 }
 
@@ -41,7 +26,6 @@ func main() {
 		log.Fatal("no task")
 	}
 	task, ok := map[string]func() error{
-		"setup": Setup,
 		"dev":   Dev,
 	}[taskName]
 	if !ok {

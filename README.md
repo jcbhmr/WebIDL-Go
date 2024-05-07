@@ -5,6 +5,5 @@
 ## Development
 
 ```sh
-go run task.go setup
 go run task.go dev
 ```
