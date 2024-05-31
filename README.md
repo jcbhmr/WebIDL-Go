@@ -1,4 +1,12 @@
-![🚧 Under construction 👷‍♂️](https://i.imgur.com/LEP2R3N.png)
+<p align=center>
+  <b>You're probably looking for <a href="https://jcbhmr.me/WebIDL-Go/">jcbhmr.me/WebIDL-Go</a></b>
+</p>
+
+## Development
+
+The document's structure is intended to mimic the [JavaScript binding section](https://webidl.spec.whatwg.org/#javascript-binding) of the Web IDL standard and take inspiration from [the Java binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/).
+
+Some other prior art resources from how other ecosystems have started adopting Web IDL (or Web API bindings) into their own language idioms are the [web-sys](https://crates.io/crates/web-sys) crate from the Rust ecosystem and _TODO_.
 
 - [x] Names
 - [x] any
@@ -43,12 +51,6 @@
 - [ ] Namespaces
 - [ ] Exceptions
 
-<p align=center>
-  <b>You're probably looking for <a href="https://jcbhmr.me/WebIDL-Go/">jcbhmr.me/WebIDL-Go</a></b>
-</p>
-
-## Development
-
 You'll need to have [Bikeshed](https://speced.github.io/bikeshed/) installed to build the spec. You can quickly install Bikeshed using `pipx`:
 
 ```sh
@@ -70,7 +72,3 @@ Here's a quick rundown of Bikeshed markup:
 - **`{{theThing}}`:** Autolink to the Web IDL definition of that symbol. Examples: `{{getSetCookie}}`, `{{Response/url}}`
 - **`[[THE-SPEC inline]]`:** Automagically expands to the title of THE-SPEC. Examples: `[[FETCH inline]]`, `[[DOM inline]]`
 - Use `<pre class=simpledef>` to make a quick colon `:` separated table
-
-The document's structure is intended to mimic the [JavaScript binding section](https://webidl.spec.whatwg.org/#javascript-binding) of the Web IDL standard and take inspiration from [the Java binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/).
-
-Some other prior art resources from how other ecosystems have started adopting Web IDL (or Web API bindings) into their own language idioms are the [web-sys](https://crates.io/crates/web-sys) crate from the Rust ecosystem and _TODO_.
