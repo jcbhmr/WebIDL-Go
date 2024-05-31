@@ -355,7 +355,7 @@ It's rarely used.
 
 Treat callback interfaces as though they were just a union type of the function signature and an unnamed interface with that single method defined. Practically, this means that callback interfaces are represented as `any`.
 
-You should provide a same-name `type TheCallbackInterface = func(...)...` type as well as an `interface` type with the suffix `Object` like `type TheCallbackInterfaceObject interface {...}`.
+You should provide a same-name `type TheCallbackInterface func(...)...` type as well as an `interface` type with the suffix `Object` like `type TheCallbackInterfaceObject interface {...}`.
 
 <div class=example>
 ```webidl
@@ -841,4 +841,12 @@ TODO
 
 ### Iterable declarations ### {#go-iterable}
 
+### Asynchronous iterable declarations ### {#go-asynchronous-iterable}
 
+### Maplike declarations ### {#go-maplike}
+
+### Setlike declarations ### {#go-setlike}
+
+## Namespaces ## {#go-namespaces}
+
+## Exceptions ## {#go-exceptions}
