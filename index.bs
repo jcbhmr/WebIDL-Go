@@ -662,4 +662,49 @@ func main() {
 
 There's not a good way to get the `string` or `int32` value out of `TheUnion` in this example when using `type U any`. If you can find one let me know! I'm sure there's a way.
 
+On a semantics note: the union type should not behave as a distinct type; it should act like the _union_ of all the terminal types. `type U = any` is the best fit for that.
+
 </div>
+
+### Buffer source types ### {#go-buffer-source-types}
+
+<pre class=simpledef>
+{{Uint8Array}}: []uint8
+{{Uint8ClampedArray}}: []uint8
+{{Int8Array}}: []int8
+{{Uint16Array}}: []uint16
+{{Int16Array}}: []int16
+{{Uint32Array}}: []uint32
+{{Int32Array}}: []int32
+{{BigUint64Array}}: []uint64
+{{BigInt64Array}}: []int64
+{{Float32Array}}: []float32
+{{Float64Array}}: []float64
+</pre>
+
+An {{ArrayBuffer}} needs to support `[AllowResizable]` so it's represented in Go as a [bytes.Buffer](https://pkg.go.dev/bytes#Buffer). {{SharedArrayBuffer}} is a bit trickier. There's no concurrent `bytes.Buffer` in the Go standard library (that I know of) so for now it's just `bytes.Buffer` with the note that it should be used with caution.
+
+<div class=example>
+```webidl
+partial interface Window {
+  Float64Array doThing(ArrayBuffer b);
+};
+```
+```go
+func DoThing(b *bytes.Buffer) []float64 {
+  return unsafe.Slice((*float64)(unsafe.Pointer(&b.Bytes()[0])), len(b.Bytes())/unsafe.Sizeof(float64(0)))
+}
+```
+</div>
+
+A {{DataView}} is roughly equivalent to a `[]byte` and can then be used with other encoding functions to use and mutate the slice's contents.
+
+### Frozen arrays ### {#go-frozen-array}
+
+Use a normal Go slice and just make sure you emphasize that it's intended to be _immutable_.
+
+### Observable arrays ### {#go-observable-array}
+
+This is fairly rare. {{DocumentOrShadowRoot/adoptedStyleSheets}} is one case where I know this is used. Don't know how to model this in Go.
+
+### 

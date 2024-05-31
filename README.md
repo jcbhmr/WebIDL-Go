@@ -23,8 +23,8 @@
 - [x] Records
 - [x] Promise types
 - [x] Union types
-- [ ] Buffer source types
-- [ ] Frozen arrays
+- [x] Buffer source types
+- [x] Frozen arrays
 - [ ] Observable arrays
 - [ ] Extended attributes
 - [ ] Legacy extended attributes
