@@ -1,6 +1,7 @@
 # THIS WORKFLOW DOES NOT WORK WITH index.bs. w3c/spec-prod uses Python 3.8.10
 # and bikeshed==3.14.5 which causes some syntax incompatibilities. Use the
-# custom deploy-pages.yml instead.
+# custom deploy-pages.yml instead. If at some point w3c/spec-prod uses a
+# newer version of Bikeshed then this workflow can be used again.
 
 # https://speced.github.io/bikeshed/#gh-action-ci
 # https://w3c.github.io/spec-prod/#deploy-to-github-pages
