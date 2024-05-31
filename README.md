@@ -26,8 +26,8 @@
 - [x] Buffer source types
 - [x] Frozen arrays
 - [ ] Observable arrays
-- [ ] Extended attributes
-- [ ] Legacy extended attributes
+- [x] Extended attributes
+- [x] Legacy extended attributes
 - [ ] Overloads
 - [ ] Interface object
 - [ ] Legacy factory functions

@@ -701,10 +701,133 @@ A {{DataView}} is roughly equivalent to a `[]byte` and can then be used with oth
 
 ### Frozen arrays ### {#go-frozen-array}
 
-Use a normal Go slice and just make sure you emphasize that it's intended to be _immutable_.
+Use a normal Go slice and just make sure you emphasize that it's intended to be *immutable*.
 
 ### Observable arrays ### {#go-observable-array}
 
 This is fairly rare. {{DocumentOrShadowRoot/adoptedStyleSheets}} is one case where I know this is used. Don't know how to model this in Go.
 
-### 
+## Extended attributes ## {#go-extended-attributes}
+
+<pre class=simpledef>
+[AllowResizable]: Add doc comment to note that this bytes.Buffer instance can be resized.
+[AllowShared]: Make sure to emphasize that this bytes.Buffer should be behind a concurrency lock.
+[Clamp]: Not relevant with exactly matching number types.
+[CrossOriginIsolated]: Assume that we are always cross-origin isolated. 🤷‍♀️
+[Default]: I don't know what this does.
+[EnforceRange]: Not relevant. Go has exactly matching number types.
+[Exposed]: Not relevant. every Web IDL definition is exposed to other Go code.
+[Global]: Any interface that has this should expose all its members in the package scope and **not provide a concrete type itself**.
+[NewObject]: Must always return a new instance such that `f() != f()`.
+[Replaceable]: Not relevant. Go has a stricter type system.
+[SameObject]: Must always return the same instance such that `f() == f()`.
+[SecureContext]: Assume that we are always in a secure context. 🤷‍♀️
+[Unscopable]: Not relevant. Go has no `with` block.
+</pre>
+
+<small>`-tags=coi` might be something that happens in the future to disable cross-origin isolated features by default.</small>
+
+### [PutForwards] ### {#PutForwards}
+
+<div class=note>
+
+This attribute was designed so that this would work:
+
+```webidl
+[Exposed=Window]
+interface Name {
+  attribute DOMString full;
+  attribute DOMString family;
+  attribute DOMString given;
+};
+
+[Exposed=Window]
+interface Person {
+  [PutForwards=full] readonly attribute Name name;
+  attribute unsigned short age;
+};
+```
+```js
+var p = getPerson();           // Obtain an instance of Person.
+
+p.name = 'John Citizen';       // This statement...
+p.name.full = 'John Citizen';  // ...has the same behavior as this one.
+```
+</div>
+
+Since this attribute can only be applied on `readonly` attributes, the port to Go is simple: delegate the setter of the parent attribute to the specified child attribute. There's no union type or any type deduction.
+
+<div class=example>
+```webidl
+[Exposed=Window]
+interface Name {
+  attribute DOMString full;
+  attribute DOMString family;
+  attribute DOMString given;
+};
+
+[Exposed=Window]
+interface Person {
+  [PutForwards=full] readonly attribute Name name;
+  attribute unsigned short age;
+};
+```
+```go
+type Name interface {
+  Full() string
+  SetFull(v string)
+  Family() string
+  SetFamily(v string)
+  Given() string
+  SetGiven(v string)
+  isName()
+}
+
+type Person interface {
+  Name() Name
+  SetName(v string)
+  Age() uint16
+  SetAge(v uint16)
+  isPerson()
+}
+
+// ✅ The getter stays the same as always. This is a readonly property.
+func (p *personImpl) Name() Name {
+  return p.name
+}
+
+// 👇 We delegate to the p.name.SetFull() just like [PutForwards=full] said!
+func (p *personImpl) SetName(v string) {
+  p.name.SetFull(v)
+}
+```
+</div>
+
+<p class=note>
+This attribute is used in {{ElementCSSInlineStyle}}/{{ElementCSSInlineStyle/style}}.
+</p>
+
+## Legacy extended attributes ## {#go-legacy-extended-attributes}
+
+<pre class=simpledef>
+[LegacyFactoryFunction]: Define this function in the same way JavaScript would.
+[LegacyLenientSetter]: Not relevant.
+[LegacyLenientThis]: Not relevant.
+[LegacyNamespace]: Interfaces will have the namespace name prefixed to their name. Used extensively in the WebAssembly APIs.
+[LegacyNoInterfaceObject]: Make the type private. Used in WebGL specifications.
+[LegacyNullToEmptyString]: Not implemented.
+[LegacyOverrideBuiltIns]: Not implemented.
+[LegacyTreatNonObjectAsNull]: Not implemented.
+[LegacyUnenumerableNamedProperties]: Not relevant. Go has no concept of iterable object properties.
+[LegacyUnforgeable]: Not relevant. All Go properties are unforgeable (not overridable) by default.
+[LegacyWindowAlias]: Do a `type T = U` type alias. Usually used for vendor-specific prefixes.
+</pre>
+
+## Overloads ## {#go-overloads}
+
+Normally Web IDL overloads would be routed under a single JavaScript function. In Go the overload convention is different; you define overloads as separate functions with slightly different names. The naming convention for these extra functions usually focuses either on a type like `Match` vs `MatchString` or a named parameter like `Split` vs `SplitAfterN`.
+
+The convention that this standard has adopted is to use TODO
+
+## Interfaces ## {#go-interfaces}
+
