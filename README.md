@@ -69,3 +69,8 @@ Here's a quick rundown of Bikeshed markup:
 - Use `<div class=example>` or `<p class=note>` to create automagic boxes with the fancy backgrounds.
 - **`{{theThing}}`:** Autolink to the Web IDL definition of that symbol. Examples: `{{getSetCookie}}`, `{{Response/url}}`
 - **`[[THE-SPEC inline]]`:** Automagically expands to the title of THE-SPEC. Examples: `[[FETCH inline]]`, `[[DOM inline]]`
+- Use `<pre class=simpledef>` to make a quick colon `:` separated table
+
+The document's structure is intended to mimic the [JavaScript binding section](https://webidl.spec.whatwg.org/#javascript-binding) of the Web IDL standard and take inspiration from [the Java binding for Web IDL](https://www.w3.org/TR/WebIDL-Java/).
+
+Some other prior art resources from how other ecosystems have started adopting Web IDL (or Web API bindings) into their own language idioms are the [web-sys](https://crates.io/crates/web-sys) crate from the Rust ecosystem and _TODO_.

@@ -831,3 +831,16 @@ The convention that this standard has adopted is to use TODO
 
 ## Interfaces ## {#go-interfaces}
 
+TODO
+
+### Constants ### {#go-constants}
+
+TODO
+
+### Attributes ### {#go-attributes}
+
+### Stringifiers ### {#go-stringifier}
+
+### Iterable declarations ### {#go-iterable}
+
+
