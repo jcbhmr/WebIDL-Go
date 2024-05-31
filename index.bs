@@ -45,7 +45,7 @@ There currently is a lack of high-quality Go bindings to Web APIs for use when w
 - It doesn't embrace union types. {{EventTarget/addEventListener(type, callback, options)}} is represented only as `AddEventListener(string, func(Event))` with no options parameter. An ergonomic way to idiomatically represnt overloads and optional parameters in Go would be nice.
 - Packages are fragmented. There are so many packages! One for each [[DOM]] definition is too many. A more cohesive API might group things based on which specification ([[DOM]], [[FETCH]], [[WEB-SHARE]], etc.) that they come from.
 - Everything returns a `(T, error)`. This is just a gripe of how granular I think the error handling is.
-- {{nodeValue}} is represented as `NodeValue() string` (with a bubbled error from `js.Value` `Get()`). The {{nodeValue}} of a node is actually `DOMString?` though. A standard way to represent nullable [[WEBIDL]] values in Go (particularily primitives) would help.
+- {{nodeValue}} is represented as `NodeValue() string`. The {{nodeValue}} of a node is actually `DOMString?` though. A standard way to represent nullable [[WEBIDL]] values in Go (particularily primitives) would help.
 
 </div>
 
@@ -105,8 +105,6 @@ For Web IDL constructors use `New` followed by the interface name.
 new {{Document}}: NewDocument
 </pre>
 </div>
-
-If you spot these letters in a Web IDL API name you should treat them as a single word: XML, HTTP, URL, ID, HTML, RTC, IDB.
 
 ## Go type mapping ## {#go-type-mapping}
 
