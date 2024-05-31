@@ -17,4 +17,6 @@ jobs:
         with:
           GH_PAGES_BRANCH: gh-pages
       - if: always()
-        run: bikeshed --version
+        run: |
+          python --version
+          bikeshed --version
