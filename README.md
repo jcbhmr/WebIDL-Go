@@ -18,12 +18,11 @@
 - [x] Dictionary types
 - [ ] Enumeration types
 - [x] Callback function types
-- [ ] Nullable types
-- [ ] Sequences
-- [ ] Records
-- [ ] Promise types
-- [ ] Asynchronousity
-- [ ] Union types
+- [x] Nullable types
+- [x] Sequences
+- [x] Records
+- [x] Promise types
+- [x] Union types
 - [ ] Buffer source types
 - [ ] Frozen arrays
 - [ ] Observable arrays

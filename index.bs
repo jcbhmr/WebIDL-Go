@@ -110,10 +110,6 @@ If you spot these letters in a Web IDL API name you should treat them as a singl
 
 ## Go type mapping ## {#go-type-mapping}
 
-<p class=issue>
-Looking for a Go Web IDL helper library to recommend here. 👀
-</p>
-
 <p class=note>
 Can't find a Web IDL type defined in this section? [Add it yourself](https://github.com/jcbhmr/WebIDL-Go) or [open an issue](https://github.com/jcbhmr/WebIDL-Go/issues/new). ❤️
 </p>
@@ -514,28 +510,97 @@ func main() {
 ```
 </div>
 
-### Promise types ### {#go-promise}
+### Nullable types ### {#go-nullable-type}
 
-Promises are a bit tricky in Go. Unlike `<-chan T`, a `Promise<T>` can be `await`-ed multiple times and will always spit out the same cached value. Similar to a `sync.OnceValue()` function. What this means is that just `<-chan T` isn't enough to represent a `Promise<T>` in Go. It falls apart specifically when you have a static `Promise<T>` that you want to `await` multiple times like {{ServiceWorkerContainer/ready}}.
-
-Instead, the solution is to use a getter function. The current idiom that seems favored by Go is to *return a closure* that you can call multiple times and will await/return the same value each time. Basically just return a `sync.OnceFunc()`, `sync.OnceValue()`, or `sync.OnceValues()`.
-
-Here's how you can represent `Promise<T>` in Go. The `func() (T, error)` signature **is what you return from the method**, not the signature of the method itself that returns the `Promise<T>`. The closure *is* the promise which can be called (awaited) at a later time or immediately any number of times.
-
-<pre class=simpledef>
-Promise&lt;T>: func() (T, error)
-Promise&lt;undefined>: func() error
-Infalliable Promise&lt;T>: func() T
-Infalliable Promise&lt;undefined>: func()
-</pre>
-
-An <dfn export>infalliable promise</dfn> is a promise that never errors. These are **extremely rare** in Web APIs since most things that are async call system-level operations that can often fail for arbitrary reasons. If you see a `Promise<T>` in Web IDL it's almost always a `Promise<T>` and not an infalliable promise.
-
-<p class=note>
-{{ServiceWorkerContainer/ready}} is an example of the rare case where a `Promise<T>` will never reject.
-</p>
+Nullable types become `nil`-able types in Go. All Web IDL interface types should be `nil`-able by default since all Go `interface` types are `nil`-able. Go primitives like `string`, `int32`, etc. can all be made `nil`-able through a pointer. Go structs can be made `nil`-able through a pointer as well.
 
 <div class=example>
+```webidl
+partial interface Window {
+  undefined doThing(DOMString? message);
+};
+```
+```go
+func DoThing(message *string) {
+  fmt.Println(message)
+}
+```
+</div>
+
+### Sequences ### {#go-sequence}
+
+For now Web IDL sequences are analagous to `Array<T>` types. Each `sequence<T>` type can be exactly mapped into a Go `[]T` slice.
+
+In the future iterables might be accepted.
+
+<div class=example>
+```webidl
+partial interface Window {
+  undefined doThing(sequence<DOMString> items);
+};
+```
+```go
+func DoThing(items []string) {
+  for i, v := range items {
+    fmt.Printf("item %d: %s", i, v)
+  }
+}
+```
+</div>
+
+### Records ### {#go-record}
+
+`record<K, V>` maps to `map[K]V` in Go.
+
+<div class=example>
+Usually records will use some kind of string key like {{DOMString}} or {{USVString}}.
+
+```webidl
+partial interface Window {
+  undefined doThing(record<DOMString, long> things);
+};
+```
+```go
+func DoThing(things map[string]int32) {
+  for k, v := range things {
+    fmt.Println(k, v)
+  }
+}
+```
+</div>
+
+So far all use-cases for `record<K, V>` have been **unordered** so to Go random `map[K]V` ordering is OK.
+
+### Promise types ### {#go-promise}
+
+Promises are a bit tricky in Go. Unlike `<-chan T`, a `Promise<T>` can be `await`-ed multiple times and will always spit out the same cached value. What this means is that just `<-chan T` isn't enough to represent a `Promise<T>` in Go. It falls apart specifically when you have a static `Promise<T>` that you want to `await` multiple times like {{ServiceWorkerContainer/ready}}.
+
+Instead, the solution is to use a getter function. The current idiom that seems favored by Go is to *return something with a `.Wait()` method* and then call that to "await" the function's result.
+
+<pre class=simpledef>
+Promise&lt;T>: interface{ Wait() (T, error) }
+Promise&lt;undefined>: interface{ Wait() error }
+Infalliable Promise&lt;T>: interface{ Wait() T }
+Infalliable Promise&lt;undefined>: interface{ Wait() }
+</pre>
+
+<div class=example>
+```webidl
+partial interface Window {
+  Promise<Response> fetch();
+};
+```
+```go
+func Fetch() interface{Wait() (Response, error)} {
+  // ...
+}
+```
+</div>
+
+An <dfn export>infalliable promise</dfn> is a promise that never errors. These are **extremely rare** in Web APIs since most things that are async call system-level operations that can often fail for arbitrary reasons. If you see a `Promise<T>` in Web IDL it's almost always a `Promise<T>` which should be a `interface { Wait() (T, error) }` in Go.
+
+<div class=example>
+{{ServiceWorkerContainer/ready}} is an example of the rare case where a `Promise<T>` will never reject.
 ```webidl
 partial interface ServiceWorkerContainer {
   readonly attribute Promise<ServiceWorkerRegistration> ready;
@@ -543,9 +608,58 @@ partial interface ServiceWorkerContainer {
 ```
 ```go
 type ServiceWorkerContainer interface {
-  Ready() func() ServiceWorkerRegistration
+  Ready() interface{ Wait() ServiceWorkerRegistration }
 }
 ```
 </div>
 
-The returned closure should support being called concurrently. This means that the closure should be safe to call from multiple goroutines at the same time. `sync.OnceFunc()` and friends handle this for you.
+In all cases the returned object should support being called concurrently. `sync.*` friends handle this for you.
+
+The work that the operation is doing should be done in a `go func(){}()` Go-routine in an async fashion. The `Promise<T>` exposes the result to the caller.
+
+### Union ### {#js-union}
+
+Web IDL union types are represented as `any` in Go. Then at runtime they are `if b, ok := a.(T); ok {}` checked to see if they fit the union terminal types. There's no recursion for union types that contain union types; all of said types must be individually checked for at runtime using type conversion checks.
+
+You should provide a stub `type UnionType = any` **type alias** (not a newtype) with a documentation comment outlining which values are accepted in the union.
+
+<div class=note>
+
+Why not `type UnionType any` as a newtype? Because then it becomes an opaque type that is impossible to downcast to any of the terminal types.
+
+```webidl
+typedef (DOMString or long) TheUnion;
+partial interface Window {
+  undefined doThing(TheUnion u);
+};
+```
+```go
+type TheUnion any
+func DoThing(u TheUnion) {
+  if uString, ok := u.(string); ok {
+    fmt.Println("got string")
+  } else if uInt32, ok := u.(int32); ok {
+    fmt.Println("got int32")
+  } else {
+    panic("not string|int32")
+  }
+}
+
+func main() {
+  DoThing("wasd") // will panic!
+  DoThing(1) // will panic!
+
+  var myVariable TheUnion = "qwerty"
+  // ☝ This has a type of TheUnion, not string.
+
+  // ✅
+  _ = myVariable.(TheUnion)
+
+  // ❌
+  _ = myVariable.(string)
+}
+```
+
+There's not a good way to get the `string` or `int32` value out of `TheUnion` in this example when using `type U any`. If you can find one let me know! I'm sure there's a way.
+
+</div>
